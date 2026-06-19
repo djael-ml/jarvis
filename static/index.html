@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS - Assistant Virtuel 3D</title>
+    <!-- Fonts moderns -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    <!-- CDNs pour Three.js, MediaPipe et QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <!-- Canvas pour la Sphère 3D -->
+    <div id="canvas-container"></div>
+
+    <!-- Interface Principale -->
+    <main id="main-interface">
+        <header>
+            <div id="status-container">
+                <span id="status-dot"></span>
+                <span id="status-text">CONNEXION EN COURS...</span>
+            </div>
+            <!-- Bouton Rouage Réglages -->
+            <button id="settings-toggle" aria-label="Paramètres">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path fill="currentColor" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Zone de Réponses en Bas -->
+        <section id="dialogue-section">
+            <div id="user-input-display" class="hidden"></div>
+            <div id="jarvis-response-display">Initialisation du système...</div>
+        </section>
+        
+        <!-- Conteneur d'images affichées (ex: Captures d'écran) -->
+        <div id="media-preview-container" class="hidden">
+            <button id="close-media-preview">&times;</button>
+            <img id="media-preview" src="" alt="Aperçu Jarvis">
+        </div>
+    </main>
+
+    <!-- Panneau de Configuration (Drawer) -->
+    <aside id="settings-panel">
+        <div class="panel-header">
+            <h2>Configuration Jarvis</h2>
+            <button id="settings-close">&times;</button>
+        </div>
+        
+        <div class="panel-body">
+            <!-- Choix du LLM -->
+            <div class="setting-group">
+                <h3>Fournisseur LLM</h3>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="provider" value="gemini" checked> Gemini API (Cloud/Gratuit)
+                    </label>
+                    <label>
+                        <input type="radio" name="provider" value="ollama"> Ollama (Local)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Paramètres Gemini -->
+            <div class="setting-group" id="gemini-settings">
+                <label for="gemini-key">Clé API Gemini</label>
+                <input type="password" id="gemini-key" placeholder="Entrez votre clé API Google AI Studio">
+                <label for="gemini-model">Modèle Gemini</label>
+                <select id="gemini-model">
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recommandé - Ultra Rapide)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                </select>
+            </div>
+
+            <!-- Paramètres Ollama -->
+            <div class="setting-group hidden" id="ollama-settings">
+                <label for="ollama-url">URL Ollama</label>
+                <input type="text" id="ollama-url" value="http://localhost:11434">
+                <label for="ollama-model">Modèle Ollama</label>
+                <input type="text" id="ollama-model" value="llama3" placeholder="Ex: llama3, mistral, phi3...">
+            </div>
+
+            <!-- Calibration Son d'Activation -->
+            <div class="setting-group">
+                <h3>Son d'Activation (Wake Sound)</h3>
+                <p class="setting-info">Enregistrez un son fréquentiel unique (ex : sifflement, claquement sec) répété 3 fois.</p>
+                <div class="wake-calibration-controls">
+                    <button id="wake-calibrate-btn" class="btn-primary">Lancer l'étalonnage</button>
+                    <div id="calibration-steps" class="hidden">
+                        <span class="step-dot" id="step-1">1</span>
+                        <span class="step-dot" id="step-2">2</span>
+                        <span class="step-dot" id="step-3">3</span>
+                    </div>
+                </div>
+                <div id="calibration-status">Non configuré. (Utilise le clic sur l'écran par défaut)</div>
+            </div>
+
+            <!-- Caméra & Tracking -->
+            <div class="setting-group">
+                <h3>Contrôle Gestuel (Caméra)</h3>
+                <label class="switch">
+                    <input type="checkbox" id="camera-tracking-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span class="switch-label">Activer le suivi des mains (Morphing 3D)</span>
+            </div>
+
+            <!-- Partage Réseau Local -->
+            <div class="setting-group network-share">
+                <h3>Partager sur le Réseau</h3>
+                <p class="setting-info">Scannez ce QR Code ou accédez à l'adresse ci-dessous depuis un autre appareil (smartphone/tablette) connecté au même Wi-Fi.</p>
+                <div id="qrcode"></div>
+                <div id="local-ip-address">Recherche de l'adresse...</div>
+            </div>
+        </div>
+
+        <div class="panel-footer">
+            <button id="save-settings" class="btn-success">Appliquer & Sauvegarder</button>
+        </div>
+    </aside>
+
+    <!-- Flux Vidéo Caché (pour MediaPipe Tracking) -->
+    <video id="webcam" class="hidden" autoplay playsinline></video>
+
+    <!-- Scripts Applicatifs -->
+    <script src="/static/js/sphere.js"></script>
+    <script src="/static/js/wake.js"></script>
+    <script src="/static/js/hand.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
