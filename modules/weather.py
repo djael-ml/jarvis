@@ -5,7 +5,8 @@ import urllib.parse
 class WeatherModule:
     name = "Météo"
     description = "Obtient les prévisions météo pour n'importe quelle ville via l'API gratuite Open-Meteo."
-    keywords = ["météo", "temperature", "température", "pluie", "temps qu'il fait", "climat"]
+    priority = 1
+    keywords = ["météo", "meteo", "meto", "temperature", "température", "degré", "degrés", "pluie", "rain", "soleil", "sun", "temps qu'il fait", "climat", "temps", "weather", "forecast", "previsions"]
 
     # Codes météo WMO traduits en français
     WMO_CODES = {

@@ -115,10 +115,8 @@ Si aucun nouveau fait utile n'est trouvé, retourne un objet vide {{}}.
             new_facts = {}
             if provider == "gemini" and llm_client:
                 # Appeler Gemini API
-                response = llm_client.models.generate_content(
-                    model=model_name,
-                    contents=prompt
-                )
+                model = llm_client.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
                 text = response.text.strip()
                 # Nettoyer d'éventuels backticks markdown
                 if text.startswith("```"):

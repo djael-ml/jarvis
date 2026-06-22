@@ -5,9 +5,11 @@ import pyautogui
 class SystemModule:
     name = "Contrôle Système"
     description = "Permet de contrôler le volume, de prendre des captures d'écran ou de lancer des applications sous Windows."
+    priority = 1
     keywords = [
-        "volume", "son", "muet", "capture", "screenshot", 
-        "lance", "ouvrir", "ouvre", "programme", "application"
+        "volume", "volum", "son", "sound", "muet", "mute", "silence", "capture", "screenshot", 
+        "ouvrir", "ouvre", "open", "lance", "launch", "programme", "program", "application", 
+        "app", "notepad", "bloc-notes", "calculatrice", "calc", "explorateur", "explorer"
     ]
 
     async def execute(self, text, context):

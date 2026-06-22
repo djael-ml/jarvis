@@ -5,8 +5,11 @@ class HandTracker {
         this.onHandDetected = onHandDetectedCallback;
         this.videoElement = document.getElementById('webcam');
         this.hands = null;
-        this.camera = null;
+        this.stream = null;
+        this.animationFrameId = null;
+        this.frameTimeoutId = null;
         this.isActive = false;
+        this.isProcessing = false;
     }
 
     async init() {
@@ -15,16 +18,16 @@ class HandTracker {
         // Initialiser l'objet Hands de MediaPipe
         this.hands = new Hands({
             locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                return `/static/js/libs/mediapipe/${file}`;
             }
         });
 
-        // Configurer les options du modèle
+        // Configurer les options du modèle (utilisation de Lite pour de meilleures performances)
         this.hands.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            maxNumHands: 2,
+            modelComplexity: 0, // 0 = Lite (ultra-rapide, évite le lag)
+            minDetectionConfidence: 0.55, // Seuil de détection optimal pour de meilleures performances
+            minTrackingConfidence: 0.55
         });
 
         // Associer le callback de détection
@@ -40,19 +43,21 @@ class HandTracker {
         this.isActive = true;
 
         try {
-            // Créer le controleur caméra de MediaPipe
-            this.camera = new Camera(this.videoElement, {
-                onFrame: async () => {
-                    if (this.isActive) {
-                        await this.hands.send({ image: this.videoElement });
-                    }
+            // Demander le flux vidéo de la caméra (léger et sans fioritures)
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 320 },
+                    height: { ideal: 240 },
+                    facingMode: "user"
                 },
-                width: 320,
-                height: 240
+                audio: false
             });
+            this.videoElement.srcObject = stream;
+            await this.videoElement.play();
 
-            await this.camera.start();
-            console.log("[HandTracker] Caméra et tracking démarrés.");
+            this.stream = stream;
+            this.runFrameLoop();
+            console.log("[HandTracker] Caméra et tracking démarrés via getUserMedia.");
         } catch (e) {
             console.error("[HandTracker] Erreur démarrage caméra :", e);
             this.isActive = false;
@@ -60,24 +65,55 @@ class HandTracker {
         }
     }
 
+    async runFrameLoop() {
+        if (!this.isActive) return;
+        
+        if (!this.isProcessing && this.videoElement.readyState === this.videoElement.HAVE_ENOUGH_DATA) {
+            this.isProcessing = true;
+            try {
+                await this.hands.send({ image: this.videoElement });
+            } catch (e) {
+                console.error("[HandTracker] Erreur lors de l'envoi de l'image à MediaPipe:", e);
+            } finally {
+                this.isProcessing = false;
+            }
+        }
+        
+        if (this.isActive) {
+            // Planifier la prochaine capture dans 50ms (environ 20 FPS, idéal pour le tracking sans bloquer le rendu à 60 FPS)
+            this.frameTimeoutId = setTimeout(() => this.runFrameLoop(), 50);
+        }
+    }
+
     handleResults(results) {
         if (!this.isActive) return;
 
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            // Envoyer les landmarks de la première main détectée
-            const landmarks = results.multiHandLandmarks[0];
-            this.onHandDetected(landmarks);
+            // Envoyer toutes les mains détectées
+            this.onHandDetected(results.multiHandLandmarks);
         } else {
-            // Aucune main détectée : renvoyer null pour revenir à la sphère normale
+            // Aucune main détectée
             this.onHandDetected(null);
         }
     }
 
     stop() {
         this.isActive = false;
-        if (this.camera) {
-            this.camera.stop();
-            this.camera = null;
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        if (this.frameTimeoutId) {
+            clearTimeout(this.frameTimeoutId);
+            this.frameTimeoutId = null;
+        }
+        this.isProcessing = false;
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+        }
+        if (this.videoElement) {
+            this.videoElement.srcObject = null;
         }
         this.onHandDetected(null);
         console.log("[HandTracker] Caméra et tracking arrêtés.");

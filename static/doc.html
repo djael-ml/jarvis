@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS - Documentation de Création de Modules</title>
+    <!-- Fonts moderns -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #05060f;
+            --card-bg: rgba(15, 18, 36, 0.45);
+            --border-color: rgba(0, 240, 255, 0.15);
+            --text-primary: #f0f3ff;
+            --text-secondary: #8f9cae;
+            --state-idle: #00f0ff;
+            --accent-purple: #bd00ff;
+            --accent-green: #00ff66;
+            --font-body: 'Outfit', sans-serif;
+            --font-heading: 'Orbitron', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(189, 0, 255, 0.08) 0%, transparent 40%);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphic Header */
+        header {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 30%, var(--state-idle) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        /* Main Content Grid */
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        section {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(40px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        section:hover {
+            border-color: var(--border-color);
+            box-shadow: 0 8px 32px rgba(0, 240, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        h2 {
+            font-family: var(--font-heading);
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 20px;
+            border-left: 3px solid var(--state-idle);
+            padding-left: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        /* Codeblock styling */
+        pre {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 18px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+
+        /* Highlights & Badges */
+        .highlight {
+            color: var(--state-idle);
+            font-weight: 600;
+        }
+
+        .alert-info {
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: var(--state-idle);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Step List */
+        ol {
+            margin-left: 20px;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        li span {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0 20px 0;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        footer a {
+            color: var(--state-idle);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: #fff;
+        }
+
+        /* Button hover styles */
+        .back-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--state-idle);
+            color: var(--bg-color);
+            border-color: var(--state-idle);
+            box-shadow: 0 4px 12px rgba(0, 240, 255, 0.2);
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="doc-title">Développement de Modules JARVIS</h1>
+            <p class="subtitle">Guide officiel de création et d'intégration d'extensions personnalisées</p>
+        </header>
+
+        <main>
+            <section id="getting-started">
+                <h2>Introduction</h2>
+                <p>
+                    JARVIS utilise un système d'extension dynamique et modulaire. Chaque fonctionnalité (recherche de films, domotique, météo, etc.) est gérée comme un script Python autonome placé dans le dossier <code class="highlight">modules/</code>.
+                </p>
+                <p>
+                    Le serveur charge ces modules au démarrage et écoute les phrases de l'utilisateur. Lorsqu'un mot-clé correspond à la requête, le module prend la main et génère une réponse personnalisée.
+                </p>
+            </section>
+
+            <section id="module-structure">
+                <h2>Structure d'un Module</h2>
+                <p>
+                    Pour être reconnu par JARVIS, un module doit être un fichier Python (.py) contenant une classe définissant les propriétés suivantes :
+                </p>
+                <ol>
+                    <li><span>name :</span> Le nom public du module (utilisé dans l'interface de gestion).</li>
+                    <li><span>description :</span> Une brève description de son rôle.</li>
+                    <li><span>keywords :</span> Une liste de mots-clés en minuscules. Si l'un de ces mots est détecté dans le message de l'utilisateur, le module est déclenché.</li>
+                    <li><span>execute(text, context) :</span> Une fonction asynchrone qui prend la requête utilisateur et un dictionnaire de contexte, puis retourne une chaîne de caractères (la réponse vocale/écrite).</li>
+                </ol>
+            </section>
+
+            <section id="code-example">
+                <h2>Exemple de Code : Module Simple Météo</h2>
+                <p>
+                    Voici le code source complet d'un module typique à sauvegarder sous <code class="highlight">modules/meteo.py</code> :
+                </p>
+                <pre><code>import random
+
+class MeteoModule:
+    # Métadonnées du module
+    name = "Météo"
+    description = "Fournit les prévisions de température locales fictives"
+    keywords = ["météo", "température", "degré", "degrés", "pluie", "soleil"]
+
+    async def execute(self, text, context):
+        # Récupérer l'instance WebSocket ou la Base de données si nécessaire
+        websocket = context.get("websocket")
+        db = context.get("db")
+        
+        # Logique de traitement simple
+        temp = random.randint(15, 30)
+        villes = ["Paris", "Lyon", "Marseille", "Bordeaux", "Lille"]
+        ville = next((v for v in villes if v.lower() in text.lower()), "votre ville")
+        
+        # Retourner la réponse textuelle que Jarvis lira à haute voix
+        return f"D'après mes capteurs, il fait actuellement {temp} degrés avec un ciel dégagé à {ville}."
+</code></pre>
+            </section>
+
+            <section id="context-api">
+                <h2>L'API de Contexte (context)</h2>
+                <p>
+                    Le paramètre <code class="highlight">context</code> passé à la méthode <code class="highlight">execute</code> contient des objets clés du serveur Jarvis :
+                </p>
+                <pre><code>context = {
+    "websocket": websocket_connection, # Connexion client active
+    "db": db_manager                   # Gestionnaire SQLite de base de données
+}</code></pre>
+                <p>
+                    Vous pouvez utiliser <code class="highlight">context["websocket"]</code> pour envoyer des messages interactifs spécifiques au client (par exemple pour afficher une image, lancer une action sur la page, ou modifier le statut de la sphère).
+                </p>
+                <p>
+                    Exemple pour afficher une image capturée à l'écran :
+                </p>
+                <pre><code># Envoyer un signal d'affichage d'image au client web
+await websocket.send_json({
+    "type": "show_image",
+    "url": "https://example.com/map.jpg"
+})</code></pre>
+            </section>
+
+            <section id="importing-modules">
+                <h2>Comment Installer votre Module ?</h2>
+                <p>
+                    Il existe deux manières simples d'intégrer vos nouveaux modules :
+                </p>
+                <ol>
+                    <li><span>Importation via l'UI :</span> Allez dans la configuration de Jarvis (raccourci <code class="highlight">/settings</code> ou tapez <code class="highlight">/mod</code>), ouvrez l'onglet <strong>Modules</strong>, cliquez sur "Choisir un fichier", sélectionnez votre fichier <code class="highlight">.py</code> et cliquez sur "Importer".</li>
+                    <li><span>Copie Directe :</span> Copiez directement votre fichier dans le sous-dossier <code class="highlight">modules/</code> de votre installation Jarvis, puis cliquez sur "Recharger les modules" ou redémarrez le serveur.</li>
+                </ol>
+                <div class="alert-info">
+                    <div class="alert-title">
+                        <svg viewBox="0 0 24 24" width="16" height="16" style="fill: var(--state-idle);"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        Astuce de Sécurité
+                    </div>
+                    Pour des raisons de stabilité, tout plantage dans la méthode <code>execute()</code> d'un module est intercepté automatiquement par le noyau de Jarvis pour éviter l'arrêt du serveur principal.
+                </div>
+            </section>
+
+            <section style="text-align: center;">
+                <a href="/static/index.html" class="back-btn">Retour à l'interface principale</a>
+            </section>
+        </main>
+
+        <footer>
+            <p>JARVIS Core Core Edition v2.3.0 &bull; Conçu avec passion par l'équipe Google DeepMind & Antigravity</p>
+        </footer>
+    </div>
+</body>
+</html>

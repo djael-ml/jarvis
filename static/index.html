@@ -8,35 +8,51 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
     
-    <!-- CDNs pour Three.js, MediaPipe et QR Code -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Dépendances locales pour Three.js, MediaPipe et QR Code -->
+    <script src="/static/js/libs/three.min.js"></script>
+    <script src="/static/js/libs/mediapipe/hands.js" crossorigin="anonymous"></script>
+    <script src="/static/js/libs/qrcode.min.js"></script>
 </head>
 <body>
+    <!-- Écran de Chargement Initial -->
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <h1 class="loading-title">JARVIS</h1>
+        <p class="loading-subtitle">Initialisation des connexions et chargement du système...</p>
+    </div>
+
     <!-- Canvas pour la Sphère 3D -->
     <div id="canvas-container"></div>
 
     <!-- Interface Principale -->
     <main id="main-interface">
         <header>
-            <div id="status-container">
-                <span id="status-dot"></span>
-                <span id="status-text">CONNEXION EN COURS...</span>
+            <div id="system-info">
+                <div class="system-version" id="system-version">Chargement...</div>
+                <div class="system-status-row">Micro : <span id="status-mic">Prêt</span></div>
+                <div class="system-status-row">Caméra : <span id="status-cam">Inactive</span></div>
             </div>
-            <!-- Bouton Rouage Réglages -->
-            <button id="settings-toggle" aria-label="Paramètres">
-                <svg viewBox="0 0 24 24" width="24" height="24">
-                    <path fill="currentColor" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-                </svg>
-            </button>
         </header>
 
         <!-- Zone de Réponses en Bas -->
         <section id="dialogue-section">
             <div id="user-input-display" class="hidden"></div>
             <div id="jarvis-response-display">Initialisation du système...</div>
+            
+            <!-- Bulle d'écriture minimaliste style Apple -->
+            <div id="chat-input-bubble">
+                <input type="text" id="chat-input" placeholder="Écrire à Jarvis..." autocomplete="off">
+                <button id="chat-mic-btn" aria-label="Activer le micro">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zM17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                </button>
+                <button id="chat-send" aria-label="Envoyer">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
         </section>
         
         <!-- Conteneur d'images affichées (ex: Captures d'écran) -->
@@ -46,93 +62,211 @@
         </div>
     </main>
 
-    <!-- Panneau de Configuration (Drawer) -->
-    <aside id="settings-panel">
+    <!-- Backdrop flouté pour le menu de configuration -->
+    <div id="settings-backdrop" class="hidden"></div>
+
+    <!-- Menu Configuration Apple Style (Centré) -->
+    <div id="settings-panel" class="hidden">
         <div class="panel-header">
             <h2>Configuration Jarvis</h2>
-            <button id="settings-close">&times;</button>
+            <button id="settings-close" aria-label="Fermer">&times;</button>
         </div>
         
-        <div class="panel-body">
-            <!-- Choix du LLM -->
-            <div class="setting-group">
-                <h3>Fournisseur LLM</h3>
-                <div class="radio-group">
-                    <label>
-                        <input type="radio" name="provider" value="gemini" checked> Gemini API (Cloud/Gratuit)
-                    </label>
-                    <label>
-                        <input type="radio" name="provider" value="ollama"> Ollama (Local)
-                    </label>
-                </div>
-            </div>
-
-            <!-- Paramètres Gemini -->
-            <div class="setting-group" id="gemini-settings">
-                <label for="gemini-key">Clé API Gemini</label>
-                <input type="password" id="gemini-key" placeholder="Entrez votre clé API Google AI Studio">
-                <label for="gemini-model">Modèle Gemini</label>
-                <select id="gemini-model">
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recommandé - Ultra Rapide)</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
-                </select>
-            </div>
-
-            <!-- Paramètres Ollama -->
-            <div class="setting-group hidden" id="ollama-settings">
-                <label for="ollama-url">URL Ollama</label>
-                <input type="text" id="ollama-url" value="http://localhost:11434">
-                <label for="ollama-model">Modèle Ollama</label>
-                <input type="text" id="ollama-model" value="llama3" placeholder="Ex: llama3, mistral, phi3...">
-            </div>
-
-            <!-- Calibration Son d'Activation -->
-            <div class="setting-group">
-                <h3>Son d'Activation (Wake Sound)</h3>
-                <p class="setting-info">Enregistrez un son fréquentiel unique (ex : sifflement, claquement sec) répété 3 fois.</p>
-                <div class="wake-calibration-controls">
-                    <button id="wake-calibrate-btn" class="btn-primary">Lancer l'étalonnage</button>
-                    <div id="calibration-steps" class="hidden">
-                        <span class="step-dot" id="step-1">1</span>
-                        <span class="step-dot" id="step-2">2</span>
-                        <span class="step-dot" id="step-3">3</span>
+        <div class="panel-container">
+            <aside class="settings-sidebar">
+                <button class="tab-btn active" data-tab="general">
+                    <svg viewBox="0 0 24 24" width="14" height="14" style="margin-right: 4px; vertical-align: middle;"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    Général
+                </button>
+                <button class="tab-btn" data-tab="audio">
+                    <svg viewBox="0 0 24 24" width="14" height="14" style="margin-right: 4px; vertical-align: middle;"><path fill="currentColor" d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zm5.3 9A6.29 6.29 0 0 1 12 17.7A6.29 6.29 0 0 1 6.7 12H5a7 7 0 0 0 6.5 6.93V21h1v-2.07A7 7 0 0 0 19 12h-1.7z"/></svg>
+                    Audio & Voix
+                </button>
+                <button class="tab-btn" data-tab="sensors">
+                    <svg viewBox="0 0 24 24" width="14" height="14" style="margin-right: 4px; vertical-align: middle;"><path fill="currentColor" d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10zm-1-6h2v2h-2v-2zm2-8h-2v6h2V8z"/></svg>
+                    Rendu & Gestes
+                </button>
+                <button class="tab-btn" data-tab="modules">
+                    <svg viewBox="0 0 24 24" width="14" height="14" style="margin-right: 4px; vertical-align: middle;"><path fill="currentColor" d="M4 4h7v7H4zm10 0h7v7h-7zM4 14h7v7H4zm10 0h7v7h-7z"/></svg>
+                    Modules
+                </button>
+                <button class="tab-btn" data-tab="network">
+                    <svg viewBox="0 0 24 24" width="14" height="14" style="margin-right: 4px; vertical-align: middle;"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    Réseau
+                </button>
+            </aside>
+            
+            <main class="settings-content">
+                <!-- Onglet Général -->
+                <div class="tab-pane active" id="tab-general">
+                    <div class="setting-section">
+                        <h3>Fournisseur LLM</h3>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="provider" value="gemini" checked>
+                                <span>Gemini API (Google Studio)</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="provider" value="ollama">
+                                <span>Ollama (Local)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-section" id="gemini-settings">
+                        <h3>Configuration Gemini</h3>
+                        <div class="input-group">
+                            <label for="gemini-key">Clé API Gemini</label>
+                            <input type="password" id="gemini-key" placeholder="AIzaSy...">
+                        </div>
+                        <div class="input-group">
+                            <label for="gemini-model">Modèle Gemini</label>
+                            <select id="gemini-model">
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra Rapide)</option>
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-section hidden" id="ollama-settings">
+                        <h3>Configuration Ollama</h3>
+                        <div class="input-group">
+                            <label for="ollama-url">URL Serveur</label>
+                            <input type="text" id="ollama-url" value="http://localhost:11434">
+                        </div>
+                        <div class="input-group">
+                            <label for="ollama-model">Nom du modèle</label>
+                            <input type="text" id="ollama-model" value="llama3" placeholder="Ex: llama3...">
+                        </div>
                     </div>
                 </div>
-                <div id="calibration-status">Non configuré. (Utilise le clic sur l'écran par défaut)</div>
-            </div>
-
-            <!-- Caméra & Tracking -->
-            <div class="setting-group">
-                <h3>Contrôle Gestuel (Caméra)</h3>
-                <label class="switch">
-                    <input type="checkbox" id="camera-tracking-toggle">
-                    <span class="slider"></span>
-                </label>
-                <span class="switch-label">Activer le suivi des mains (Morphing 3D)</span>
-            </div>
-
-            <!-- Partage Réseau Local -->
-            <div class="setting-group network-share">
-                <h3>Partager sur le Réseau</h3>
-                <p class="setting-info">Scannez ce QR Code ou accédez à l'adresse ci-dessous depuis un autre appareil (smartphone/tablette) connecté au même Wi-Fi.</p>
-                <div id="qrcode"></div>
-                <div id="local-ip-address">Recherche de l'adresse...</div>
-            </div>
+                
+                <!-- Onglet Audio & Voix -->
+                <div class="tab-pane hidden" id="tab-audio">
+                    <div class="setting-section">
+                        <h3>Reconnaissance Vocale (Micro)</h3>
+                        <div class="switch-row">
+                            <span class="switch-label">Activer le microphone (Écoute active)</span>
+                            <label class="switch">
+                                <input type="checkbox" id="mic-active-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-section">
+                        <h3>Synthèse Vocale (Voix Jarvis)</h3>
+                        <p class="setting-info">Personnalisez la voix, le débit de parole et la hauteur de Jarvis.</p>
+                        <div class="input-group">
+                            <label for="tts-voice-select">Sélectionner la voix</label>
+                            <select id="tts-voice-select">
+                                <option value="">Par défaut (Système)</option>
+                            </select>
+                        </div>
+                        <div class="slider-group" style="margin-top: 12px;">
+                            <div class="slider-header">
+                                <label for="tts-rate-slider" style="margin-bottom: 0;">Débit de parole : <span id="tts-rate-val">1.0</span></label>
+                            </div>
+                            <input type="range" id="tts-rate-slider" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 100%; accent-color: var(--state-idle); margin-top: 8px;">
+                        </div>
+                        <div class="slider-group" style="margin-top: 12px;">
+                            <div class="slider-header">
+                                <label for="tts-pitch-slider" style="margin-bottom: 0;">Hauteur (Pitch) : <span id="tts-pitch-val">1.0</span></label>
+                            </div>
+                            <input type="range" id="tts-pitch-slider" min="0.5" max="1.5" step="0.1" value="1.0" style="width: 100%; accent-color: var(--state-idle); margin-top: 8px;">
+                        </div>
+                    </div>
+                    
+                    <div class="setting-section">
+                        <h3>Son d'Activation</h3>
+                        <p class="setting-info">Enregistrez un son fréquentiel unique (sifflement, claquement) répété 3 fois.</p>
+                        <div class="wake-calibration-controls">
+                            <button id="wake-calibrate-btn" class="btn-primary">Lancer l'étalonnage</button>
+                            <div id="calibration-steps" class="hidden">
+                                <span class="step-dot" id="step-1">1</span>
+                                <span class="step-dot" id="step-2">2</span>
+                                <span class="step-dot" id="step-3">3</span>
+                            </div>
+                        </div>
+                        <div id="calibration-status">Non configuré (clic sur l'écran par défaut)</div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Rendu & Gestes -->
+                <div class="tab-pane hidden" id="tab-sensors">
+                    <div class="setting-section">
+                        <h3>Contrôle Gestuel (Caméra)</h3>
+                        <div class="switch-row">
+                            <span class="switch-label">Suivi des mains (Morphing 3D)</span>
+                            <label class="switch">
+                                <input type="checkbox" id="camera-tracking-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-section">
+                        <h3>Affichage de la Sphère</h3>
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label for="particle-count-slider" style="margin-bottom: 0;">Quantité de Neurones : <span id="particle-count-val">600</span></label>
+                            </div>
+                            <input type="range" id="particle-count-slider" min="100" max="2000" step="50" value="600" style="width: 100%; accent-color: var(--state-idle); margin-top: 8px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Modules -->
+                <div class="tab-pane hidden" id="tab-modules">
+                    <div class="setting-section">
+                        <h3>Gestion des Modules</h3>
+                        <p class="setting-info">Activez ou désactivez les fonctionnalités de Jarvis.</p>
+                        <div id="modules-list-container">
+                            <p style="font-size: 13px; color: var(--text-secondary);">Chargement des modules...</p>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <button id="reload-modules-btn" class="btn-primary">Recharger les modules</button>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-section">
+                        <h3>Importer un Module</h3>
+                        <p class="setting-info">Sélectionnez un fichier Python (.py) pour l'installer comme nouveau module.</p>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
+                            <input type="file" id="import-module-file" accept=".py" style="display: none;">
+                            <button id="select-module-file-btn" class="btn-primary">Choisir un fichier</button>
+                            <span id="selected-module-filename" style="font-size: 12px; color: var(--text-secondary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Aucun fichier choisi</span>
+                            <button id="upload-module-btn" class="btn-success" style="padding: 10px 20px;">Importer</button>
+                        </div>
+                        <div id="import-status-message" style="margin-top: 10px; font-size: 12px; display: none;"></div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Partage Réseau -->
+                <div class="tab-pane hidden" id="tab-network">
+                    <div class="setting-section network-share">
+                        <h3>Partager sur le Réseau</h3>
+                        <p class="setting-info">Accédez à Jarvis sur un autre appareil connecté au même réseau Wi-Fi.</p>
+                        <div id="qrcode"></div>
+                        <div id="local-ip-address">Recherche...</div>
+                    </div>
+                </div>
+            </main>
         </div>
-
+        
         <div class="panel-footer">
             <button id="save-settings" class="btn-success">Appliquer & Sauvegarder</button>
         </div>
-    </aside>
+    </div>
 
     <!-- Flux Vidéo Caché (pour MediaPipe Tracking) -->
     <video id="webcam" class="hidden" autoplay playsinline></video>
 
     <!-- Scripts Applicatifs -->
-    <script src="/static/js/sphere.js"></script>
-    <script src="/static/js/wake.js"></script>
-    <script src="/static/js/hand.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/sphere.js?v=2.1.0"></script>
+    <script src="/static/js/wake.js?v=2.1.0"></script>
+    <script src="/static/js/hand.js?v=2.1.0"></script>
+    <script src="/static/js/app.js?v=2.1.0"></script>
 </body>
 </html>
